@@ -1,0 +1,74 @@
+--- mg_biome.cpp.orig	2019-09-14 09:04:44.522429758 -0700
++++ mg_biome.cpp	2019-10-06 15:31:13.478110742 -0700
+@@ -18,6 +18,10 @@
+ 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ */
+ 
++// Modified by David G (kestral246@gmail.com)
++// 2019-10-05
++// Hack to give Voronoi biome distribution. 
++
+ #include "mg_biome.h"
+ #include "mg_decoration.h"
+ #include "emerge.h"
+@@ -31,6 +35,8 @@
+ 
+ ///////////////////////////////////////////////////////////////////////////////
+ 
++// Length of side of full Voronoi biome map, centered about (0,0)
++#define W_Voronoi 500.0
+ 
+ BiomeManager::BiomeManager(Server *server) :
+ 	ObjDefManager(server, OBJDEF_BIOME)
+@@ -97,7 +103,8 @@
+ 	NoiseParams &np_heat_blend, u64 seed)
+ {
+ 	return
+-		NoisePerlin2D(&np_heat,       pos.X, pos.Z, seed) +
++		//NoisePerlin2D(&np_heat,       pos.X, pos.Z, seed) +
++		(W_Voronoi/2 + pos.X) * 100/W_Voronoi +
+ 		NoisePerlin2D(&np_heat_blend, pos.X, pos.Z, seed);
+ }
+ 
+@@ -107,7 +114,8 @@
+ 	NoiseParams &np_humidity_blend, u64 seed)
+ {
+ 	return
+-		NoisePerlin2D(&np_humidity,       pos.X, pos.Z, seed) +
++		//NoisePerlin2D(&np_humidity,       pos.X, pos.Z, seed) +
++		(W_Voronoi/2 + pos.Z) * 100/W_Voronoi +
+ 		NoisePerlin2D(&np_humidity_blend, pos.X, pos.Z, seed);
+ }
+ 
+@@ -215,10 +223,12 @@
+ Biome *BiomeGenOriginal::calcBiomeAtPoint(v3s16 pos) const
+ {
+ 	float heat =
+-		NoisePerlin2D(&m_params->np_heat,       pos.X, pos.Z, m_params->seed) +
++		//NoisePerlin2D(&m_params->np_heat,       pos.X, pos.Z, m_params->seed) +
++		(W_Voronoi/2 + pos.X) * 100/W_Voronoi +
+ 		NoisePerlin2D(&m_params->np_heat_blend, pos.X, pos.Z, m_params->seed);
+ 	float humidity =
+-		NoisePerlin2D(&m_params->np_humidity,       pos.X, pos.Z, m_params->seed) +
++		//NoisePerlin2D(&m_params->np_humidity,       pos.X, pos.Z, m_params->seed) +
++		(W_Voronoi/2 + pos.Z) * 100/W_Voronoi +
+ 		NoisePerlin2D(&m_params->np_humidity_blend, pos.X, pos.Z, m_params->seed);
+ 
+ 	return calcBiomeFromNoise(heat, humidity, pos);
+@@ -234,6 +244,11 @@
+ 	noise_heat_blend->perlinMap2D(pmin.X, pmin.Z);
+ 	noise_humidity_blend->perlinMap2D(pmin.X, pmin.Z);
+ 
++	for (s32 i = 0; i < m_csize.X; i++)
++		for (s32 j = 0; j < m_csize.Z; j++) {
++			noise_heat->result[i + j*m_csize.X] = (W_Voronoi/2 + pmin.X + i) * 100/W_Voronoi;
++			noise_humidity->result[i + j*m_csize.X] = (W_Voronoi/2 + pmin.Z + j) * 100/W_Voronoi;
++		}
+ 	for (s32 i = 0; i < m_csize.X * m_csize.Z; i++) {
+ 		noise_heat->result[i]     += noise_heat_blend->result[i];
+ 		noise_humidity->result[i] += noise_humidity_blend->result[i];
+@@ -336,3 +351,4 @@
+ 	getIdFromNrBacklog(&c_dungeon_alt,   "ignore",                    CONTENT_IGNORE, false);
+ 	getIdFromNrBacklog(&c_dungeon_stair, "ignore",                    CONTENT_IGNORE, false);
+ }
++
