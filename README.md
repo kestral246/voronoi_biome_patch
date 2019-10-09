@@ -1,7 +1,8 @@
-#Voronoi Biomes Patch
+Voronoi Biomes Patch
+====================
 
-
-##Place biomes to match their Voronoi diagram
+Place biomes to match their Voronoi diagram
+-------------------------------------------
 
 This is a patch for minetest that allows creating worlds with biomes
 arranged in the standard Voronoi pattern. Heat (or temperature) on the x-axis and humidity
@@ -14,7 +15,7 @@ on the z-axis.
 **This is a proof of concept that is intended for people who are experienced compiling minetest themselves.**
 
 
-** Cautions **
+**Cautions**
 
 - Once this patch is applied, there is no way to set it back to normal functionality without reverting the patch and recompiling.
 - Therefore, make this change to a separate copy of minetest, and use the `RUN_IN_PLACE` option to keep this version's files completely separate from your regular minetest version.
