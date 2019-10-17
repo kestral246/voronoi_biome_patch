@@ -9,8 +9,13 @@ arranged in the standard Voronoi pattern. Heat (or temperature) on the x-axis an
 on the z-axis.
 
 ![Screenshot 1](default_biomes.jpeg "Default Voronoi world")
+Default Voronoi world.
 
 ![Screenshot 2](ethereal_biomes.jpeg "Ethereal Voronoi world")
+Ethereal Voronoi world *(elev. approx. 15)*
+
+![Screenshot 3](tiled_voronoi.jpeg "Tiled Voronoi world")
+**NEW:** Now includes option to tile voronoi patterns indefinitely.
 
 **This is a proof of concept that is intended for people who are experienced compiling minetest themselves.**
 
@@ -32,8 +37,14 @@ on the z-axis.
 
 - By default the patch creates Voronoi maps with sides of 500 nodes.
 - It maps x=-250 to heat=0 and x=+250 to heat=100. The corresponding values for humidity are mapped from z=-250 to z=+250.
-- This can be changed by updating the following value in the patched version of mg_biome.cpp before recompiling:
->       #define W_Voronoi 500
+- **NEW:** I've added an option to repeatedly tile the voronoi pattern.
+- **UPDATED:** This can be changed by updating the following value in the patched version of mg_biome.cpp **before recompiling**:
+>      // Until this can be read in from config file, has to be set manually.
+>      //  0 = default biome distribution--not voronoi.
+>      // +n = single voronoi pattern centered at (0,0) with sides of 'n'
+>      // -n = tiled voronoi pattern centered at (0,0) with sides of '+n'
+>
+>      int voronoi_biomes = 500;
 
 
 **Further customizations can be done in minetest.conf:**
@@ -45,6 +56,7 @@ It's more difficult when the biomes change with elevation.
 
 - Multiple runs can be done with different base levels—carpathian and flat mapgens have easy options to do this.
 - Otherwise, use different mapgens and seeds to find what works. I've used amidst-minetest, but keep in mind that the biomes that program shows will be completely overridden.
+- **NEW:** Tiled voronoi option has been added, which might help this case—it gives multiple versions of each biome per world.
 
 
 **License of source code:  LGPL-2.1**

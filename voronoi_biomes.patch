@@ -1,74 +1,130 @@
---- mg_biome.cpp.orig	2019-09-14 09:04:44.522429758 -0700
-+++ mg_biome.cpp	2019-10-06 15:31:13.478110742 -0700
+--- mg_biome.orig.cpp	2019-10-15 11:21:37.604496970 -0700
++++ mg_biome.cpp	2019-10-16 16:22:08.874191603 -0700
 @@ -18,6 +18,10 @@
  51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
  
 +// Modified by David G (kestral246@gmail.com)
-+// 2019-10-05
++// 2019-10-17
 +// Hack to give Voronoi biome distribution. 
 +
  #include "mg_biome.h"
  #include "mg_decoration.h"
  #include "emerge.h"
-@@ -31,6 +35,8 @@
+@@ -31,6 +35,12 @@
  
  ///////////////////////////////////////////////////////////////////////////////
  
-+// Length of side of full Voronoi biome map, centered about (0,0)
-+#define W_Voronoi 500.0
++// Until this can be read in from config file, has to be set manually.
++//  0 = default biome distribution--not voronoi.
++// +n = single voronoi pattern centered at (0,0) with sides of 'n'
++// -n = tiled voronoi pattern centered at (0,0) with sides of '+n'
++ 
++int voronoi_biomes = 500;
  
  BiomeManager::BiomeManager(Server *server) :
  	ObjDefManager(server, OBJDEF_BIOME)
-@@ -97,7 +103,8 @@
+@@ -96,9 +106,18 @@
+ float BiomeManager::getHeatAtPosOriginal(v3s16 pos, NoiseParams &np_heat,
  	NoiseParams &np_heat_blend, u64 seed)
  {
- 	return
+-	return
 -		NoisePerlin2D(&np_heat,       pos.X, pos.Z, seed) +
-+		//NoisePerlin2D(&np_heat,       pos.X, pos.Z, seed) +
-+		(W_Voronoi/2 + pos.X) * 100/W_Voronoi +
- 		NoisePerlin2D(&np_heat_blend, pos.X, pos.Z, seed);
+-		NoisePerlin2D(&np_heat_blend, pos.X, pos.Z, seed);
++	if (voronoi_biomes == 0)
++		return
++			NoisePerlin2D(&np_heat,       pos.X, pos.Z, seed) +
++			NoisePerlin2D(&np_heat_blend, pos.X, pos.Z, seed);
++	else if (voronoi_biomes > 0)
++		return
++			(voronoi_biomes/2.0 + pos.X) * 100.0/voronoi_biomes +
++			NoisePerlin2D(&np_heat_blend, pos.X, pos.Z, seed);
++	else
++		return
++			fmod(fmod(-voronoi_biomes/2.0 + pos.X, -voronoi_biomes) - voronoi_biomes, -voronoi_biomes) * -100.0/voronoi_biomes +
++			NoisePerlin2D(&np_heat_blend, pos.X, pos.Z, seed);
  }
  
-@@ -107,7 +114,8 @@
+ 
+@@ -106,9 +125,18 @@
+ float BiomeManager::getHumidityAtPosOriginal(v3s16 pos, NoiseParams &np_humidity,
  	NoiseParams &np_humidity_blend, u64 seed)
  {
- 	return
+-	return
 -		NoisePerlin2D(&np_humidity,       pos.X, pos.Z, seed) +
-+		//NoisePerlin2D(&np_humidity,       pos.X, pos.Z, seed) +
-+		(W_Voronoi/2 + pos.Z) * 100/W_Voronoi +
- 		NoisePerlin2D(&np_humidity_blend, pos.X, pos.Z, seed);
+-		NoisePerlin2D(&np_humidity_blend, pos.X, pos.Z, seed);
++	if (voronoi_biomes == 0)
++		return
++			NoisePerlin2D(&np_humidity,       pos.X, pos.Z, seed) +
++			NoisePerlin2D(&np_humidity_blend, pos.X, pos.Z, seed);
++	else if (voronoi_biomes > 0)
++		return
++			(voronoi_biomes/2.0 + pos.Z) * 100.0/voronoi_biomes +
++			NoisePerlin2D(&np_humidity_blend, pos.X, pos.Z, seed);
++	else
++		return
++			fmod(fmod(-voronoi_biomes/2.0 + pos.Z, -voronoi_biomes) - voronoi_biomes, -voronoi_biomes) * -100.0/voronoi_biomes +
++			NoisePerlin2D(&np_humidity_blend, pos.X, pos.Z, seed);
  }
  
-@@ -215,10 +223,12 @@
+ 
+@@ -214,13 +242,33 @@
+ // Only usable in a mapgen thread
  Biome *BiomeGenOriginal::calcBiomeAtPoint(v3s16 pos) const
  {
- 	float heat =
+-	float heat =
 -		NoisePerlin2D(&m_params->np_heat,       pos.X, pos.Z, m_params->seed) +
-+		//NoisePerlin2D(&m_params->np_heat,       pos.X, pos.Z, m_params->seed) +
-+		(W_Voronoi/2 + pos.X) * 100/W_Voronoi +
- 		NoisePerlin2D(&m_params->np_heat_blend, pos.X, pos.Z, m_params->seed);
- 	float humidity =
+-		NoisePerlin2D(&m_params->np_heat_blend, pos.X, pos.Z, m_params->seed);
+-	float humidity =
 -		NoisePerlin2D(&m_params->np_humidity,       pos.X, pos.Z, m_params->seed) +
-+		//NoisePerlin2D(&m_params->np_humidity,       pos.X, pos.Z, m_params->seed) +
-+		(W_Voronoi/2 + pos.Z) * 100/W_Voronoi +
- 		NoisePerlin2D(&m_params->np_humidity_blend, pos.X, pos.Z, m_params->seed);
+-		NoisePerlin2D(&m_params->np_humidity_blend, pos.X, pos.Z, m_params->seed);
++	float heat;
++	float humidity;
  
++	if (voronoi_biomes == 0) {
++		heat =
++			NoisePerlin2D(&m_params->np_heat,       pos.X, pos.Z, m_params->seed) +
++			NoisePerlin2D(&m_params->np_heat_blend, pos.X, pos.Z, m_params->seed);
++		humidity =
++			NoisePerlin2D(&m_params->np_humidity,       pos.X, pos.Z, m_params->seed) +
++			NoisePerlin2D(&m_params->np_humidity_blend, pos.X, pos.Z, m_params->seed);
++	}
++	else if (voronoi_biomes > 0) {
++		heat =
++			(voronoi_biomes/2.0 + pos.X) * 100.0/voronoi_biomes +
++			NoisePerlin2D(&m_params->np_heat_blend, pos.X, pos.Z, m_params->seed);
++		humidity =
++			(voronoi_biomes/2.0 + pos.Z) * 100.0/voronoi_biomes +
++			NoisePerlin2D(&m_params->np_humidity_blend, pos.X, pos.Z, m_params->seed);
++	}
++	else {
++		heat =
++			fmod(fmod(-voronoi_biomes/2.0 + pos.X, -voronoi_biomes) - voronoi_biomes, -voronoi_biomes) * -100.0/voronoi_biomes +
++			NoisePerlin2D(&m_params->np_heat_blend, pos.X, pos.Z, m_params->seed);
++		humidity =
++			fmod(fmod(-voronoi_biomes/2.0 + pos.Z, -voronoi_biomes) - voronoi_biomes, -voronoi_biomes) * -100.0/voronoi_biomes +
++			NoisePerlin2D(&m_params->np_humidity_blend, pos.X, pos.Z, m_params->seed);
++	}
  	return calcBiomeFromNoise(heat, humidity, pos);
-@@ -234,6 +244,11 @@
+ }
+ 
+@@ -234,6 +282,19 @@
  	noise_heat_blend->perlinMap2D(pmin.X, pmin.Z);
  	noise_humidity_blend->perlinMap2D(pmin.X, pmin.Z);
  
-+	for (s32 i = 0; i < m_csize.X; i++)
-+		for (s32 j = 0; j < m_csize.Z; j++) {
-+			noise_heat->result[i + j*m_csize.X] = (W_Voronoi/2 + pmin.X + i) * 100/W_Voronoi;
-+			noise_humidity->result[i + j*m_csize.X] = (W_Voronoi/2 + pmin.Z + j) * 100/W_Voronoi;
-+		}
++	if (voronoi_biomes > 0)
++		for (s32 i = 0; i < m_csize.X; i++)
++			for (s32 j = 0; j < m_csize.Z; j++) {
++				noise_heat->result[i + j*m_csize.X] = (voronoi_biomes/2.0 + pmin.X + i) * 100.0/voronoi_biomes;
++				noise_humidity->result[i + j*m_csize.X] = (voronoi_biomes/2.0 + pmin.Z + j) * 100.0/voronoi_biomes;
++			}
++	else if (voronoi_biomes < 0)
++		for (s32 i = 0; i < m_csize.X; i++)
++			for (s32 j = 0; j < m_csize.Z; j++) {
++				noise_heat->result[i + j*m_csize.X] = fmod(fmod(-voronoi_biomes/2.0 + pmin.X + i, -voronoi_biomes) - voronoi_biomes, -voronoi_biomes) * -100.0/voronoi_biomes;
++				noise_humidity->result[i + j*m_csize.X] = fmod(fmod(-voronoi_biomes/2.0 + pmin.Z + j, -voronoi_biomes) - voronoi_biomes, -voronoi_biomes) * -100.0/voronoi_biomes;
++			}
++
  	for (s32 i = 0; i < m_csize.X * m_csize.Z; i++) {
  		noise_heat->result[i]     += noise_heat_blend->result[i];
  		noise_humidity->result[i] += noise_humidity_blend->result[i];
-@@ -336,3 +351,4 @@
- 	getIdFromNrBacklog(&c_dungeon_alt,   "ignore",                    CONTENT_IGNORE, false);
- 	getIdFromNrBacklog(&c_dungeon_stair, "ignore",                    CONTENT_IGNORE, false);
- }
-+
